@@ -1,12 +1,13 @@
 ﻿import numpy as np
 
-import effects.base
-import stretch
+from .base import WorldEffectBase
+from .. import stretch
 
-class VfFlag(effects.base.WorldEffectBase):
+
+class VfFlag(WorldEffectBase):
     @staticmethod
     def apply(params) -> np.ndarray:
-        '''
+        """
         | 疑似エッジ
         | vfフラグでエッジがかかる長さを5ms単位で指定します。
         | vfフラグが正の場合冒頭から、負の場合固定範囲の末尾からです。
@@ -22,10 +23,10 @@ class VfFlag(effects.base.WorldEffectBase):
         Returns
         -------
         new_values: np.ndarray of float64
-            
+
             | 処理後の値
 
-        '''
+        """
         if params.flags.params["vf"].value == params.flags.params["vf"].default_value:
             return params.output_data
         if params.flags.params["vfw"].value == 0:
@@ -33,27 +34,34 @@ class VfFlag(effects.base.WorldEffectBase):
         vf: int = params.flags.params["vf"].value
         velocity_rate: float = stretch.calc_velocity_rate(params.velocity)
         fixed_ms: float = velocity_rate * params.fixed_ms
-        if vf >0:
-            vfs: int =0
-            length: int =int(44100 / 1000 * vf *5)
+        if vf > 0:
+            vfs: int = 0
+            length: int = int(44100 / 1000 * vf * 5)
         elif fixed_ms + vf * 5 <= 0:
-            vfs: int =0
-            length: int =int(44100 / 1000 * fixed_ms)
+            vfs: int = 0
+            length: int = int(44100 / 1000 * fixed_ms)
         else:
             vfs: int = int(44100 / 1000 * (fixed_ms + vf * 5))
-            length: int =int(44100 / 1000 * abs(vf) *5)
+            length: int = int(44100 / 1000 * abs(vf) * 5)
         effects: np.ndarray = np.ones_like(params.output_data)
-        edge_length: int =int(1000 * params.flags.params["vfw"].value / 100)
-        pad_length:int = int(edge_length * params.flags.params["vfp"].value / 100)
+        edge_length: int = int(1000 * params.flags.params["vfw"].value / 100)
+        pad_length: int = int(edge_length * params.flags.params["vfp"].value / 100)
         sicle_length: int = edge_length + pad_length
         n: int = int(length / sicle_length)
         for i in range(n):
-            effects[vfs + i*sicle_length:vfs + i*sicle_length + edge_length] = np.arange(1, 0 , -1/edge_length) * 1/(2 ** n-i)
-            effects[vfs + i*sicle_length + edge_length:vfs + (i+1) * sicle_length] = 0
+            effects[vfs + i * sicle_length : vfs + i * sicle_length + edge_length] = (
+                np.arange(1, 0, -1 / edge_length) * 1 / (2**n - i)
+            )
+            effects[
+                vfs + i * sicle_length + edge_length : vfs + (i + 1) * sicle_length
+            ] = 0
 
-        lasteffect: np.ndarray = np.arange(0, 1 , 1/(length-n*sicle_length))[:length -n*sicle_length]
-        lasteffect = np.pad(lasteffect,(0,(length -n*sicle_length - lasteffect.shape[0])),"edge")
-        effects[vfs + n*sicle_length:vfs + length] = lasteffect
+        lasteffect: np.ndarray = np.arange(0, 1, 1 / (length - n * sicle_length))[
+            : length - n * sicle_length
+        ]
+        lasteffect = np.pad(
+            lasteffect, (0, (length - n * sicle_length - lasteffect.shape[0])), "edge"
+        )
+        effects[vfs + n * sicle_length : vfs + length] = lasteffect
 
         return params.output_data * effects
-

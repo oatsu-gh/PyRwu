@@ -1,4 +1,4 @@
-﻿'''Settings
+﻿"""Settings
 各種定数や初期値の設定
 
 Attributes
@@ -25,7 +25,7 @@ PYWORLD_Q1:float default -0.15
 
     | worldでスペクトル包絡抽出時の補正値
     | 通常は変更不要
-    
+
 PYWORLD_THRESHOLD: float, default 0
 
     | worldで非周期性指標抽出時に、有声/無声を決定する閾値(0 ～ 1)
@@ -40,7 +40,7 @@ USE_PYWORLD_CACHE: bool, default False
     | Trueにすると、2回目以降の処理が早くなりますが、設定ファイルが存在しない1回目はより時間がかかるようになります。
 
     | 実装しましたが、期待したほど高速化しない上にnpzファイルのサイズが大きいため、Falseにしておきます。
-    
+
 
 USE_D4C_FILE: bool, default True
 
@@ -53,16 +53,16 @@ A4FRQ: float, default 440
     基準となる音高
 
 TONE_NUM: dict
-    
+
     | UTAUから渡される音高名をnotenumに変換するための辞書
     | notenumはC1=24、C#1=25...B7=107で、以下の式で与えられる。
 
     >>> notenum = (octave+1) * 12 + TONE_NUM[key]
 
 PITCH_EFFECTS: list of effects.base.PitchEffectBase
-    
+
     | ピッチ処理時に適用するエフェクトのクラスを指定する。
-    
+
 F0_EFFECTS: list of effects.base.EffectBase
 
     | synthesizeでf0に適用するエフェクトのクラスを指定する。
@@ -90,114 +90,187 @@ OUTPUT_BITDEPTH: int, default 16
 DEFAULT_FRAMERATE: int, default 44100
 
     | 扱うデータのサンプル周波数
-'''
+"""
 
-from effects import eb_flag, large_b_flag, large_p_flag, vf_flag
-import flags
+from .effects import eb_flag, large_b_flag, large_p_flag, vf_flag
+from . import flags
 import pyworld as pw
-from effects import *
+from .effects import *
 
 FLAGS = flags.Flags()
-FLAGS.add(flags.Flag("B",
-                     descriptions=["息成分の強さ(ブレシネス)。大きいほど息っぽい",
-                                    "0～49ではB0の時非周期性指標が全て0になるように乗算します。",
-                                    "51～100ではB100の時、1000Hz～5000Hz帯の非周期性指標が全て1になるように加算します。"],
-                     isBool=False,
-                     min=0,
-                     max=100,
-                     default_value=50))
-FLAGS.add(flags.Flag("eb",
-                     descriptions=["語尾の息成分の強さ。大きいほど息っぽい"],
-                     isBool=False,
-                     min=0,
-                     max=100,
-                     default_value=0))
-FLAGS.add(flags.Flag("ebs",
-                     descriptions=["ノート前半部分の語尾息がかからない時間を5ms単位で指定します。",
-                                   "負の数を指定するとノート末尾からの時間になります。"],
-                     isBool=False,
-                     min=-1000,
-                     max=1000,
-                     default_value=0))
-FLAGS.add(flags.Flag("eba",
-                     descriptions=["ebフラグのアタックタイムを5ms単位で指定します。"],
-                     isBool=False,
-                     min=0,
-                     max=1000,
-                     default_value=0))
-FLAGS.add(flags.Flag("g",
-                     descriptions=["疑似ジェンダー値",
-                                    "負の数で女声化・若年化",
-                                    "正の数で男声化・大人化します。"],
-                     isBool=False,
-                     min=-100,
-                     max=100,
-                     default_value=0))
-FLAGS.add(flags.Flag("t",
-                     descriptions=["音程の補正。1cent単位"],
-                     isBool=False,
-                     min=-100,
-                     max=100,
-                     default_value=0))
-FLAGS.add(flags.Flag("P",
-                     descriptions=["ピークコンプレッサー。",
-                                   "P100の時volume適用前の音量最大値が-6dBになるように正規化",
-                                   "P0の時は何もしない。"],
-                     isBool=False,
-                     min=0,
-                     max=100,
-                     default_value=86))
-FLAGS.add(flags.Flag("e",
-                     descriptions=["wavの伸縮方法。",
-                                   "通常はループ方式で、このフラグを設定するとストレッチ式になる。"],
-                     isBool=True,
-                     default_bool=False))
-FLAGS.add(flags.Flag("A",
-                     descriptions=["ピッチ変動にあわせて音量が変化します。",
-                                    "1～100では、基準より高いとき音量が小さくなります。",
-                                    "-1～-100では、基準より低いとき音量が小さくなります。"],
-                     isBool=False,
-                     min=-100,
-                     max=100,
-                     default_value=0))
-FLAGS.add(flags.Flag("gw",
-                     descriptions=["うなり声、グロウル",
-                                   "グロウルが"],
-                     isBool=False,
-                     min=0,
-                     max=500,
-                     default_value=0))
-FLAGS.add(flags.Flag("gws",
-                     descriptions=["ノート前半部分のグロウルがかからない時間を5ms単位で指定します。",
-                                   "負の数を指定するとノート末尾からの時間になります。"],
-                     isBool=False,
-                     min=-1000,
-                     max=1000,
-                     default_value=0))
-FLAGS.add(flags.Flag("gwa",
-                     descriptions=["gwフラグのアタックタイムを5ms単位で指定します。"],
-                     isBool=False,
-                     min=0,
-                     max=1000,
-                     default_value=0))
-FLAGS.add(flags.Flag("vf",
-                     descriptions=["疑似エッジ。","エッジがかかる長さを5ms単位で指定します。"],
-                     isBool=False,
-                     min=-500,
-                     max=500,
-                     default_value=0))
-FLAGS.add(flags.Flag("vfw",
-                     descriptions=["疑似エッジのエッジ1回あたりの長さ。%指定"],
-                     isBool=False,
-                     min=0,
-                     max=300,
-                     default_value=100))
-FLAGS.add(flags.Flag("vfp",
-                     descriptions=["疑似エッジのエッジ1回あたりの無音の長さ。%指定"],
-                     isBool=False,
-                     min=0,
-                     max=100,
-                     default_value=20))
+FLAGS.add(
+    flags.Flag(
+        "B",
+        descriptions=[
+            "息成分の強さ(ブレシネス)。大きいほど息っぽい",
+            "0～49ではB0の時非周期性指標が全て0になるように乗算します。",
+            "51～100ではB100の時、1000Hz～5000Hz帯の非周期性指標が全て1になるように加算します。",
+        ],
+        isBool=False,
+        min=0,
+        max=100,
+        default_value=50,
+    )
+)
+FLAGS.add(
+    flags.Flag(
+        "eb",
+        descriptions=["語尾の息成分の強さ。大きいほど息っぽい"],
+        isBool=False,
+        min=0,
+        max=100,
+        default_value=0,
+    )
+)
+FLAGS.add(
+    flags.Flag(
+        "ebs",
+        descriptions=[
+            "ノート前半部分の語尾息がかからない時間を5ms単位で指定します。",
+            "負の数を指定するとノート末尾からの時間になります。",
+        ],
+        isBool=False,
+        min=-1000,
+        max=1000,
+        default_value=0,
+    )
+)
+FLAGS.add(
+    flags.Flag(
+        "eba",
+        descriptions=["ebフラグのアタックタイムを5ms単位で指定します。"],
+        isBool=False,
+        min=0,
+        max=1000,
+        default_value=0,
+    )
+)
+FLAGS.add(
+    flags.Flag(
+        "g",
+        descriptions=[
+            "疑似ジェンダー値",
+            "負の数で女声化・若年化",
+            "正の数で男声化・大人化します。",
+        ],
+        isBool=False,
+        min=-100,
+        max=100,
+        default_value=0,
+    )
+)
+FLAGS.add(
+    flags.Flag(
+        "t",
+        descriptions=["音程の補正。1cent単位"],
+        isBool=False,
+        min=-100,
+        max=100,
+        default_value=0,
+    )
+)
+FLAGS.add(
+    flags.Flag(
+        "P",
+        descriptions=[
+            "ピークコンプレッサー。",
+            "P100の時volume適用前の音量最大値が-6dBになるように正規化",
+            "P0の時は何もしない。",
+        ],
+        isBool=False,
+        min=0,
+        max=100,
+        default_value=86,
+    )
+)
+FLAGS.add(
+    flags.Flag(
+        "e",
+        descriptions=[
+            "wavの伸縮方法。",
+            "通常はループ方式で、このフラグを設定するとストレッチ式になる。",
+        ],
+        isBool=True,
+        default_bool=False,
+    )
+)
+FLAGS.add(
+    flags.Flag(
+        "A",
+        descriptions=[
+            "ピッチ変動にあわせて音量が変化します。",
+            "1～100では、基準より高いとき音量が小さくなります。",
+            "-1～-100では、基準より低いとき音量が小さくなります。",
+        ],
+        isBool=False,
+        min=-100,
+        max=100,
+        default_value=0,
+    )
+)
+FLAGS.add(
+    flags.Flag(
+        "gw",
+        descriptions=["うなり声、グロウル", "グロウルが"],
+        isBool=False,
+        min=0,
+        max=500,
+        default_value=0,
+    )
+)
+FLAGS.add(
+    flags.Flag(
+        "gws",
+        descriptions=[
+            "ノート前半部分のグロウルがかからない時間を5ms単位で指定します。",
+            "負の数を指定するとノート末尾からの時間になります。",
+        ],
+        isBool=False,
+        min=-1000,
+        max=1000,
+        default_value=0,
+    )
+)
+FLAGS.add(
+    flags.Flag(
+        "gwa",
+        descriptions=["gwフラグのアタックタイムを5ms単位で指定します。"],
+        isBool=False,
+        min=0,
+        max=1000,
+        default_value=0,
+    )
+)
+FLAGS.add(
+    flags.Flag(
+        "vf",
+        descriptions=["疑似エッジ。", "エッジがかかる長さを5ms単位で指定します。"],
+        isBool=False,
+        min=-500,
+        max=500,
+        default_value=0,
+    )
+)
+FLAGS.add(
+    flags.Flag(
+        "vfw",
+        descriptions=["疑似エッジのエッジ1回あたりの長さ。%指定"],
+        isBool=False,
+        min=0,
+        max=300,
+        default_value=100,
+    )
+)
+FLAGS.add(
+    flags.Flag(
+        "vfp",
+        descriptions=["疑似エッジのエッジ1回あたりの無音の長さ。%指定"],
+        isBool=False,
+        min=0,
+        max=100,
+        default_value=20,
+    )
+)
 
 
 PYWORLD_PERIOD: float = pw.default_frame_period
@@ -210,25 +283,48 @@ USE_PYWORLD_CACHE: bool = False
 USE_D4C_FILE: bool = True
 
 A4FRQ: float = 440.0
-TONE_NUM: dict = {"C":0, "C#":1, "C♯":1, "Db":1, "D♭":1,
-                  "D":2, "D#":3, "D♯":3, "Eb":3, "E♭":3,
-                  "E":4, 
-                  "F":5, "F#":6, "F♯":6, "Gb":6, "G♭":6,
-                  "G":7, "G#":8, "G♯":8, "Ab":8, "A♭":8,
-                  "A":9, "A#":10, "A♯":10, "Bb":10, "B♭":10,
-                  "B":11}
+TONE_NUM: dict = {
+    "C": 0,
+    "C#": 1,
+    "C♯": 1,
+    "Db": 1,
+    "D♭": 1,
+    "D": 2,
+    "D#": 3,
+    "D♯": 3,
+    "Eb": 3,
+    "E♭": 3,
+    "E": 4,
+    "F": 5,
+    "F#": 6,
+    "F♯": 6,
+    "Gb": 6,
+    "G♭": 6,
+    "G": 7,
+    "G#": 8,
+    "G♯": 8,
+    "Ab": 8,
+    "A♭": 8,
+    "A": 9,
+    "A#": 10,
+    "A♯": 10,
+    "Bb": 10,
+    "B♭": 10,
+    "B": 11,
+}
 
-PITCH_EFFECTS = [t_flag.TFlag,
-                 gw_flag.GwFlag]
+PITCH_EFFECTS = [t_flag.TFlag, gw_flag.GwFlag]
 F0_EFFECTS = []
 SP_EFFECTS = [g_flag.GFlag]
-AP_EFFECTS = [large_b_flag.LargeBFlag,
-              ]
+AP_EFFECTS = [
+    large_b_flag.LargeBFlag,
+]
 WORLD_EFFECTS = [eb_flag.EBFlag]
-OUT_WAVE_EFFECTS = [large_a_flag.LargeAFlag,
-                    vf_flag.VfFlag,
-                    large_p_flag.LargePFlag,
-                    ]
+OUT_WAVE_EFFECTS = [
+    large_a_flag.LargeAFlag,
+    vf_flag.VfFlag,
+    large_p_flag.LargePFlag,
+]
 
 OUTPUT_BITDEPTH: int = 16
 DEFAULT_FRAMERATE: int = 44100
