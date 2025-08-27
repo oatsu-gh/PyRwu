@@ -1,16 +1,11 @@
-﻿import os.path
-import copy
-from logging import INFO, getLogger, StreamHandler, Logger
+﻿import copy
+import os.path
+from logging import INFO, Logger, StreamHandler, getLogger
 
 import numpy as np
 import pyworld as pw
 
-from . import flags
-from . import frq_io
-from . import wave_io
-from . import stretch
-from . import pitch
-from . import settings
+from . import flags, frq_io, pitch, settings, stretch, wave_io
 
 default_logger = getLogger(__name__)
 handler = StreamHandler()
@@ -389,16 +384,17 @@ class Resamp:
 
         else:
             frq_path: str = os.path.splitext(self._input_path)[0] + "_wav.frq"
-
             # print(time.time())
+            # 原音のWAVファイルを切り出して、データとフレームレートを取得
             self._input_data, self._framerate = wave_io.read(
                 self._input_path, self._offset, self._end_ms
             )
-            # print(time.time())
+            # 周波数表FRQファイルが無い場合は新規作成する
             if not os.path.isfile(frq_path):
                 input_data, framerate = wave_io.read(self._input_path, 0, 0)
                 frq_io.write(input_data, frq_path, framerate)
 
+            # 周波数表FRQファイルがもとからある場合、もしくは直前に新規作成された場合は読み込む
             if os.path.isfile(frq_path):
                 self._f0, self._t = frq_io.read(
                     frq_path, self._offset, self._end_ms, self._framerate, frame_period

@@ -1,1 +1,1 @@
-from PyRwu.resamp import Resamp  # noqa: F401
+from .resamp import Resamp  # noqa: F401
