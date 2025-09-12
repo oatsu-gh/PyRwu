@@ -283,15 +283,15 @@ class Resamp:
         output_path: str,
         target_tone: str,
         velocity: int,
-        flag_value: str = "",
+        flag_value: str = '',
         offset: float = 0,
         target_ms: float = 0,
         fixed_ms: float = 0,
         end_ms: float = 0,
         volume: int = 100,
         modulation: int = 0,
-        tempo: str = "!120",
-        pitchbend: str = "",
+        tempo: str = '!120',
+        pitchbend: str = '',
         *,
         logger: Logger | None = None,
     ) -> None:
@@ -310,10 +310,10 @@ class Resamp:
         self._modulation = modulation
         self._tempo = tempo
         self._pitchbend = pitchbend
-        self.logger.info("input:" + input_path)
-        self.logger.info("cache:" + output_path)
-        self.logger.info("target_tone:" + target_tone)
-        self.logger.info("target_length:" + str(target_ms) + "ms")
+        self.logger.debug('input:' + input_path)
+        self.logger.debug('cache:' + output_path)
+        self.logger.debug('target_tone:' + target_tone)
+        self.logger.debug('target_length:' + str(target_ms) + 'ms')
 
     def parseFlags(self) -> None:
         """
@@ -383,7 +383,7 @@ class Resamp:
             self._getInputFromNpz(f0_floor, f0_ceil, frame_period, q1, threshold)
 
         else:
-            frq_path: str = os.path.splitext(self._input_path)[0] + "_wav.frq"
+            frq_path: str = os.path.splitext(self._input_path)[0] + '_wav.frq'
             # print(time.time())
             # 原音のWAVファイルを切り出して、データとフレームレートを取得
             self._input_data, self._framerate = wave_io.read(
@@ -469,7 +469,7 @@ class Resamp:
         TypeError
             input_pathで指定したファイルがwavではなかったとき
         """
-        d4c_path: str = os.path.splitext(self._input_path)[0] + "_wav.d4c"
+        d4c_path: str = os.path.splitext(self._input_path)[0] + '_wav.d4c'
         if not settings.USE_D4C_FILE:
             self._ap = pw.d4c(  # pyright: ignore[reportAttributeAccessIssue]
                 self._input_data,
@@ -554,13 +554,13 @@ class Resamp:
         TypeError
             input_pathで指定したファイルがwavではなかったとき
         """
-        npz_path: str = os.path.splitext(self._input_path)[0] + ".npz"
+        npz_path: str = os.path.splitext(self._input_path)[0] + '.npz'
         if os.path.isfile(npz_path):
             loaded_array = np.load(npz_path)
             start_frame: int = int(self._offset / frame_period)
-            self._f0 = loaded_array["f0"]
-            self._sp = loaded_array["sp"]
-            self._ap = loaded_array["ap"]
+            self._f0 = loaded_array['f0']
+            self._sp = loaded_array['sp']
+            self._ap = loaded_array['ap']
         else:
             self._input_data, self._framerate = wave_io.read(self._input_path, 0, 0)
             self._f0, self._t = pw.harvest(  # pyright: ignore[reportAttributeAccessIssue]
@@ -636,7 +636,7 @@ class Resamp:
             vel_ap = self._ap[:input_fix_frames]
 
         if self._target_frames - self._fixed_frames > 0:
-            if self.flags.params["e"].flag:
+            if self.flags.params['e'].flag:
                 s_f0, s_sp, s_ap = stretch.world_stretch(
                     self._target_frames - self._fixed_frames,
                     self._f0[input_fix_frames:],
@@ -753,7 +753,7 @@ class Resamp:
         for effect in settings.WORLD_EFFECTS:
             self._f0, self._sp, self._ap = effect.apply(self)
 
-        self._output_data = pw.synthesize(  # pyright: ignore[reportAttributeAccessIssue]
+        self._output_data = pw.synthesize(  # type: ignore
             self._f0, self._sp, self._ap, self._framerate, settings.PYWORLD_PERIOD
         )
 
