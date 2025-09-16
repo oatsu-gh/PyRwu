@@ -76,7 +76,6 @@ def write(wav_data: np.ndarray, output_path: str, framerate: int):
     amp = np.zeros_like(f0)
     for i in range(amp.shape[0]):
         amp[i] = np.average(np.abs(wav_data[i * 256 : (i + 1) * 256]))
-    np.array(np.average(f0))
     with open(output_path, "wb") as fw:
         fw.write(b"FREQ0003")
         fw.write((256).to_bytes(4, "little"))
