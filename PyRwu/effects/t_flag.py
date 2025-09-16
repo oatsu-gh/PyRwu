@@ -1,11 +1,12 @@
 ﻿import numpy as np
 
-import effects.base
+from .base import PitchEffectBase
 
-class TFlag(effects.base.PitchEffectBase):
+
+class TFlag(PitchEffectBase):
     @staticmethod
     def apply(params, pitches: np.ndarray) -> np.ndarray:
-        '''
+        """
         "音程の補正。1cent単位"
 
         Parameters
@@ -15,16 +16,16 @@ class TFlag(effects.base.PitchEffectBase):
             伸縮機の各パラメータ
 
         pitches: np.ndarray of float64
-            
+
             | world時間軸のピッチ数列(cent単位)
             | settings.PYWORLD_PERIOD(デフォルト5ms)毎に生成される。
 
         Returns
         -------
         pitches: np.ndarray of float64
-            
+
             | world時間軸のピッチ数列(cent単位)
             | settings.PYWORLD_PERIOD(デフォルト5ms)毎に生成される。
 
-        '''
+        """
         return pitches + params.flags.params["t"].value
