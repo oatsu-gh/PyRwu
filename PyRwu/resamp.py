@@ -310,10 +310,6 @@ class Resamp:
         self._modulation = modulation
         self._tempo = tempo
         self._pitchbend = pitchbend
-        self.logger.debug('input:' + input_path)
-        self.logger.debug('cache:' + output_path)
-        self.logger.debug('target_tone:' + target_tone)
-        self.logger.debug('target_length:' + str(target_ms) + 'ms')
 
     def parseFlags(self) -> None:
         """
@@ -384,7 +380,6 @@ class Resamp:
 
         else:
             frq_path: str = os.path.splitext(self._input_path)[0] + '_wav.frq'
-            # print(time.time())
             # 原音のWAVファイルを切り出して、データとフレームレートを取得
             self._input_data, self._framerate = wave_io.read(
                 self._input_path, self._offset, self._end_ms
@@ -407,11 +402,9 @@ class Resamp:
                     f0_ceil=f0_ceil,
                     frame_period=frame_period,
                 )
-                # print(time.time())
                 self._f0 = pw.stonemask(  # pyright: ignore[reportAttributeAccessIssue]
                     self._input_data, self._f0, self._t, self._framerate
                 )
-            # print(time.time())
             self._sp = pw.cheaptrick(  # pyright: ignore[reportAttributeAccessIssue]
                 self._input_data,
                 self._f0,
@@ -420,11 +413,7 @@ class Resamp:
                 q1=q1,
                 f0_floor=f0_floor,
             )
-            # print(time.time())
-
             self._getAp(f0_floor, f0_ceil, frame_period, threshold)
-
-            # print(time.time())
 
     def _getAp(
         self,
@@ -753,7 +742,7 @@ class Resamp:
         for effect in settings.WORLD_EFFECTS:
             self._f0, self._sp, self._ap = effect.apply(self)
 
-        self._output_data = pw.synthesize(  # type: ignore
+        self._output_data = pw.synthesize(  # type: ignore[reportAttributeAccessIssue]
             self._f0, self._sp, self._ap, self._framerate, settings.PYWORLD_PERIOD
         )
 
@@ -791,20 +780,11 @@ class Resamp:
         | 実行の順番はモジュールの説明に記載のある通りです。
 
         """
-        # print(time.time())
         self.parseFlags()
-        # print(time.time())
         self.getInputData()
-        # print(time.time())
         self.stretch()
-        # print(time.time())
         self.pitchShift()
-        # print(time.time())
         self.applyPitch()
-        # print(time.time())
         self.synthesize()
-        # print(time.time())
         self.adjustVolume()
-        # print(time.time())
         self.output()
-        # print(time.time())
