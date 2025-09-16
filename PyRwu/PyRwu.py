@@ -172,7 +172,6 @@ if __name__ == '__main__':
     )
     parser.add_argument('--show-flag', action=ShowFlagAction)
     args = parser.parse_args()
-    print(args)
 
     if args.pitchbend == '':  # flagsに値がないとき、引数がずれてしまうので補正する。
         args.pitchbend = args.tempo
