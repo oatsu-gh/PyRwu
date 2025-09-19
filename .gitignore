@@ -376,3 +376,8 @@ FodyWeavers.xsd
 /PyRwu/test.frq
 /pypi_memo.txt
 log.txt
+
+# Python packaging build artifacts
+build/
+*.egg-info/
+dist/
