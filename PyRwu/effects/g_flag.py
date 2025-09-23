@@ -23,10 +23,12 @@ class GFlag(WorldEffectBase):
             | 処理後の値
 
         """
-        if params.flags.params["g"].value == 0:
+        if params.flags.params['g'].value == 0:
             return params.sp
 
-        ratio: float = 1 - params.flags.params["g"].value / 100
+        framerate = params.framerate
+
+        ratio: float = 1 - params.flags.params['g'].value / 100
         fft_size: int = params.sp.shape[1] - 1
         freq_axis1: np.ndarray = np.arange(fft_size // 2) * ratio / fft_size * framerate
         freq_axis2: np.ndarray = np.arange(fft_size // 2) / fft_size * framerate
