@@ -39,7 +39,8 @@ class GFlag(WorldEffectBase):
 
         for i in range(params.f0.shape[0]):
             for j in range(int(fft_size / 2)):
-                spectrum1[j] = np.log(sp[i][j])
+                # Prevent log of zero or negative values by using a small positive minimum
+                spectrum1[j] = np.log(np.maximum(sp[i][j], 1e-30))
             spectrum2 = GFlag._interp1(
                 freq_axis1,
                 spectrum1,
@@ -56,6 +57,9 @@ class GFlag(WorldEffectBase):
             while j <= fft_size / 2:
                 sp[i][j] = sp[i][int(fft_size / 2 * ratio) - 1]
                 j = j + 1
+        
+        # Final safety check: ensure no zeros remain that could cause issues downstream
+        sp = np.maximum(sp, 1e-30)
         return sp
 
     @staticmethod
@@ -67,8 +71,17 @@ class GFlag(WorldEffectBase):
             h[i] = x[i + 1] - x[i]
         k = GFlag._histc(x, x_length, xi, xi_length, k)
         for i in range(xi_length):
-            s = (xi[i] - x[k[i] - 1]) / h[k[i] - 1]
-            yi[i] = y[k[i] - 1] + s * (y[k[i]] - y[k[i] - 1])
+            # Ensure array bounds are respected
+            k_idx = max(0, min(k[i] - 1, x_length - 1))
+            k_next = max(0, min(k[i], x_length - 1))
+            
+            # Prevent division by zero by checking if h[k_idx] is effectively zero
+            if abs(h[k_idx]) < 1e-30:
+                # If the interval is too small, use the nearest neighbor value
+                yi[i] = y[k_idx]
+            else:
+                s = (xi[i] - x[k_idx]) / h[k_idx]
+                yi[i] = y[k_idx] + s * (y[k_next] - y[k_idx])
         return yi
 
     @staticmethod
@@ -79,11 +92,15 @@ class GFlag(WorldEffectBase):
             if edges[i] >= x[0]:
                 break
         while i < edges_length:
+            # Add bounds checking to prevent array access errors
+            if count >= x_length:
+                break
             if edges[i] < x[count]:
                 index[i] = count
             else:
                 i = i - 1
-                index[i] = count
+                if i >= 0:  # Ensure i doesn't go negative
+                    index[i] = count
                 count = count + 1
             if count == x_length:
                 break

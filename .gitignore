@@ -381,3 +381,9 @@ log.txt
 build/
 *.egg-info/
 dist/
+
+# Test files
+test_g_flag_fix.py
+analyze_g_flag_issues.py
+test_g_flag_fixed.py
+integration_test_g_flag.py
