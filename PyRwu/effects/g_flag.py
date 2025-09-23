@@ -45,8 +45,14 @@ class GFlag(WorldEffectBase):
                 fft_size // 2 + 1,
                 spectrum2,
             )
-            for j in range(int(fft_size / 2)):
-                sp[i][j] = np.exp(spectrum2[j])
+            spectrum_slice = spectrum2[: fft_size // 2]
+            if np.any(np.abs(spectrum_slice) > 709):
+                warn(
+                    f'Large spectrum values detected (max: {np.max(np.abs(spectrum_slice)):.2f}), clipping to ±709',
+                    stacklevel=2,
+                )
+                spectrum_slice = np.clip(spectrum_slice, -709, 709)
+            sp[i][: fft_size // 2] = np.exp(spectrum_slice)
             if ratio >= 1.0:
                 continue
             j = int(fft_size / 2 * ratio)
