@@ -62,12 +62,25 @@ class GFlag(WorldEffectBase):
 
     @staticmethod
     def _interp1(x, y, x_length, xi, xi_length, yi):
+        """1次元線形補間
+
+        Args:
+            x: 既知のx座標配列（昇順ソート済み）
+            y: 既知のy値配列
+            x_length: xの長さ
+            xi: 補間したいx座標配列
+            xi_length: xiの長さ
+            yi: 補間結果を格納する配列
+        """
         h = np.zeros(x_length)
         k = np.zeros(xi_length, dtype=np.int32)
 
+        # 各区間の幅を計算
         for i in range(x_length - 1):
             h[i] = x[i + 1] - x[i]
+        # 補間点がどの区間に属するかを特定
         k = GFlag._histc(x, x_length, xi, xi_length, k)
+        # 線形補間を実行
         for i in range(xi_length):
             s = (xi[i] - x[k[i] - 1]) / h[k[i] - 1]
             yi[i] = y[k[i] - 1] + s * (y[k[i]] - y[k[i] - 1])
