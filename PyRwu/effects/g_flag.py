@@ -28,14 +28,11 @@ class GFlag(WorldEffectBase):
 
         ratio: float = 1 - params.flags.params["g"].value / 100
         fft_size: int = params.sp.shape[1] - 1
-        freq_axis1: np.ndarray = np.ndarray(fft_size)
-        freq_axis2: np.ndarray = np.ndarray(fft_size)
+        freq_axis1: np.ndarray = np.arange(fft_size // 2) * ratio / fft_size * framerate
+        freq_axis2: np.ndarray = np.arange(fft_size // 2) / fft_size * framerate
         spectrum1: np.ndarray = np.ndarray(fft_size)
         spectrum2: np.ndarray = np.ndarray(fft_size)
         sp: np.ndarray = params.sp.copy()
-        for i in range(int(fft_size / 2)):
-            freq_axis1[i] = ratio * i / fft_size * params.framerate
-            freq_axis2[i] = i / fft_size * params.framerate
 
         for i in range(params.f0.shape[0]):
             for j in range(int(fft_size / 2)):
@@ -43,9 +40,9 @@ class GFlag(WorldEffectBase):
             spectrum2 = GFlag._interp1(
                 freq_axis1,
                 spectrum1,
-                int(fft_size / 2) + 1,
+                fft_size // 2 + 1,
                 freq_axis2,
-                int(fft_size / 2) + 1,
+                fft_size // 2 + 1,
                 spectrum2,
             )
             for j in range(int(fft_size / 2)):
@@ -53,9 +50,7 @@ class GFlag(WorldEffectBase):
             if ratio >= 1.0:
                 continue
             j = int(fft_size / 2 * ratio)
-            while j <= fft_size / 2:
-                sp[i][j] = sp[i][int(fft_size / 2 * ratio) - 1]
-                j = j + 1
+            sp[i][j : fft_size // 2 + 1] = sp[i][int(fft_size / 2 * ratio) - 1]
         return sp
 
     @staticmethod
