@@ -40,6 +40,7 @@ class GFlag(WorldEffectBase):
 
         # original frequency axis. shape: (fft_size // 2,)
         x_freq = np.arange(fft_size // 2) / fft_size * framerate
+        print('x_freq:', x_freq)
         # new frequency axis. shape: (fft_size // 2,)
         xi_freq = x_freq / ratio
         # original spectrogram in log-scale. shape: (n_frames, fft_size // 2)
@@ -59,7 +60,8 @@ class GFlag(WorldEffectBase):
         # check shapes
         assert x_freq.shape == xi_freq.shape == (fft_size // 2,)
 
-        # ループ無しで処理したい
+        # TODO: for ループをなくして高速化する
+        # TODO: fft_size // 2 より大きい周波数成分の扱いを考える
         for i in range(params.f0.shape[0]):
             y_slice = y_log_sp[i][: fft_size // 2]
             # 線形内挿
