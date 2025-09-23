@@ -35,8 +35,7 @@ class GFlag(WorldEffectBase):
         sp: np.ndarray = params.sp.copy()
 
         for i in range(params.f0.shape[0]):
-            for j in range(int(fft_size / 2)):
-                spectrum1[j] = np.log(sp[i][j])
+            spectrum1[: fft_size // 2] = np.log(sp[i][: fft_size // 2])
             spectrum2 = GFlag._interp1(
                 freq_axis1,
                 spectrum1,
