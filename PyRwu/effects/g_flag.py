@@ -1,13 +1,106 @@
-﻿from warnings import warn
-
-import numpy as np
+﻿import numpy as np
+from scipy.interpolate import make_interp_spline
 
 from .base import WorldEffectBase
 
 
+def shift_spectrum(
+    sp: np.ndarray,
+    framerate: int,
+    ratio: float,
+    scale_kind: str = 'mel',
+    interp_kind: str = 'cubic',
+) -> np.ndarray:
+    """スペクトルを周波数軸方向にシフトする (フォルマントシフト)
+
+    Args:
+        sp: スペクトル (n_frames, n_fft // 2 + 1)
+        ratio: シフト比率 (>1.0 で高周波側へシフト、<1.0 で低周波側へシフト)
+
+    Returns:
+        シフト後のスペクトル (n_frames, n_fft // 2 + 1)
+    """
+    # シフト比率が1.0の場合はそのまま返す
+    if ratio == 1.0:
+        return sp
+
+    # 入力スペクトルの形状を取得
+    _n_frames, n_bins = sp.shape
+    _fft_size = (n_bins - 1) * 2
+
+    # 周波数ビン数のチェック
+    if n_bins < 2:
+        msg = f'Not enough frequency bins: {n_bins}'
+        raise ValueError(msg)
+
+    # 補間の次数を決める
+    if interp_kind == 'linear':
+        k = 1
+    elif interp_kind == 'cubic':
+        k = 3
+    elif interp_kind == 'quintic':
+        k = 5
+    else:
+        msg = f'Unknown interpolation kind: {interp_kind}'
+        raise ValueError(msg)
+    # 補間次数をデータ点数-1以下に制限
+    k = min(k, n_bins - 1)
+
+    # スケール変換関数
+    def hz_to_scale(frq: np.ndarray) -> np.ndarray:
+        """周波数 (Hz) からスケールへの変換"""
+        if scale_kind == 'mel':
+            return 2595 * np.log10(1 + frq / 700)
+        if scale_kind == 'log':
+            return np.log1p(frq)
+        if scale_kind == 'linear':
+            return frq
+        msg = f'Unknown spectrum scale: {scale_kind}'
+        raise ValueError(msg)
+
+    def scale_to_hz(scl: np.ndarray) -> np.ndarray:
+        """スケールから周波数 (Hz) への変換"""
+        if scale_kind == 'mel':
+            return 700 * (10 ** (scl / 2595) - 1)
+        if scale_kind == 'log':
+            return np.expm1(scl)
+        if scale_kind == 'linear':
+            return scl
+        msg = f'Unknown spectrum scale: {scale_kind}'
+        raise ValueError(msg)
+
+    # 周波数軸 (Hz)
+    x_orig = np.linspace(0, framerate / 2, n_bins)
+    # 軸スケールを変換
+    x_scaled_freqs = hz_to_scale(x_orig)
+    xi_scaled_freqs = x_scaled_freqs / ratio
+    # 範囲外の値をクリップ。外挿防止のため。NOTE: クリッピングこの範囲でいいか検討。
+    xi_scaled_freqs = np.clip(xi_scaled_freqs, x_scaled_freqs[0], x_scaled_freqs[-1])
+    # 周波数軸のスケールをを元に戻す
+    xi_freqs = scale_to_hz(xi_scaled_freqs)
+
+    # 出力配列
+    new_sp = np.zeros_like(sp)
+
+    # 全フレームを一度に補間 (ベクトル化)
+    ## フレームごとにスプライン補間する場合のコード---------
+    # for i in range(sp.shape[0]):
+    #     spline = make_interp_spline(xi_freqs, sp[i], k=k, axis=0)
+    #     new_sp[i] = spline(xi_scaled_freqs)
+    ## 全フレームを一度に補間することで高速化----------------
+    spline = make_interp_spline(x_orig, sp.T, k=k, axis=0)
+    new_sp = spline(xi_freqs).T.copy()  # .T はビューなのでWORLDでエラーになるため copy
+    new_sp = np.clip(
+        new_sp,
+        np.finfo(new_sp.dtype).tiny,
+        None,
+    )  # 負の値をほぼ0にクリップ
+    return new_sp
+
+
 class GFlag(WorldEffectBase):
     @staticmethod
-    def apply(params) -> np.ndarray:
+    def apply(params, scale_kind='mel', interp_kind='cubic') -> np.ndarray:
         """
         | 疑似ジェンダー値
         | 負の数で女声化・若年化
@@ -31,93 +124,23 @@ class GFlag(WorldEffectBase):
             return params.sp
 
         g_value = np.clip(g_value, -99.9, 99.9)  # ゼロ除算防止のためクリッピング
-        ratio: float = 1 - g_value / 100
+        ratio = 1 - g_value / 100
 
+        sp = params.sp.copy()
         framerate = params.framerate
-        fft_size: int = params.sp.shape[1] - 1
-        sp: np.ndarray = params.sp.copy()
-        new_sp: np.ndarray = params.sp.copy()
+        new_sp = shift_spectrum(
+            sp,
+            framerate,
+            ratio,
+            scale_kind=scale_kind,
+            interp_kind=interp_kind,
+        )
 
-        # original frequency axis. shape: (fft_size // 2,)
-        x_freq = np.arange(fft_size // 2) / fft_size * framerate
-        print('x_freq:', x_freq)
-        # new frequency axis. shape: (fft_size // 2,)
-        xi_freq = x_freq / ratio
-        # original spectrogram in log-scale. shape: (n_frames, fft_size // 2)
-        y_log_sp = np.log(sp[:][: fft_size // 2])
-        # interpolated spectrogram in log-scale. shape: (n_frames, fft_size // 2)
-        yi_log_sp = np.empty_like(y_log_sp)
-
-        print('fft_size:', fft_size)
-        print('ratio:', ratio)
-        print('framerate:', framerate)
-        print('params.f0.shape:', params.f0.shape)
-        print('x_freq.shape:', x_freq.shape)
-        print('xi_freq.shape:', xi_freq.shape)
-        print('y_log_sp.shape:', y_log_sp.shape)
-        print('yi_log_sp.shape:', yi_log_sp.shape)
-        print('fft_size // 2:', fft_size // 2)
-        # check shapes
-        assert x_freq.shape == xi_freq.shape == (fft_size // 2,)
-
-        # TODO: for ループをなくして高速化する
-        # TODO: fft_size // 2 より大きい周波数成分の扱いを考える
-        for i in range(params.f0.shape[0]):
-            y_slice = y_log_sp[i][: fft_size // 2]
-            # 線形内挿
-            yi_slice = np.interp(xi_freq, x_freq, y_slice)
-            # オーバーフロー回避のためクリッピング (float64 の exp に渡す絶対値上限は約709.7827)
-            if np.any(np.abs(yi_slice) > 709):
-                msg = f'Large spectrum values detected (max: {np.max(np.abs(yi_slice)):.2f}), clipping to ±709'
-                warn(msg, stacklevel=2)
-                yi_slice = np.clip(yi_slice, -709, 709)
-
-            # 対数を元に戻す
-            new_sp[i][: fft_size // 2] = np.exp(yi_slice)
-
-            # ratio が 1.0 未満(男声側へのシフト)の場合は、のこりの周波数成分は元の sp の直前の値で埋める
-            if ratio < 1.0:
-                j = int(fft_size / 2 * ratio)
-                new_sp[i][j : fft_size // 2 + 1] = sp[i][int(fft_size / 2 * ratio) - 1]
+        if not np.all(np.isfinite(new_sp)):
+            msg = 'Non-finite values found in shifted spectrum.'
+            raise ValueError(msg)
+        if new_sp.shape != params.sp.shape:
+            msg = f'Original sp shape ({params.sp.shape}) and shifted sp shapes ({new_sp.shape}) do not match.'
+            raise ValueError(msg)
 
         return new_sp
-
-    @staticmethod
-    def _interp1(x, y, x_length, xi, xi_length, yi):
-        """1次元線形補間
-
-        Args:
-            x: 既知のx座標配列（昇順ソート済み）
-            y: 既知のy値配列
-            x_length: xの長さ
-            xi: 補間したいx座標配列
-            xi_length: xiの長さ
-            yi: 補間結果を格納する配列
-        """
-        # numpy.interpを使用した1次元線形補間
-        yi[:] = np.interp(xi[:xi_length], x[:x_length], y[:x_length])
-        return yi
-
-    @staticmethod
-    def _histc(x, x_length, edges, edges_length, index):
-        count = 1
-        for i in range(edges_length):
-            index[i] = 1
-            if edges[i] >= x[0]:
-                break
-        while i < edges_length:
-            if edges[i] < x[count]:
-                index[i] = count
-            else:
-                i = i - 1
-                index[i] = count
-                count = count + 1
-            if count == x_length:
-                break
-            i = i + 1
-        count = count - 1
-        i = i + 1
-        while i < edges_length:
-            index[i] = count
-            i = i + 1
-        return index
