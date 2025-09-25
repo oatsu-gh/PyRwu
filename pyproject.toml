@@ -1,10 +1,13 @@
 [project]
-name        = "PyRwu"
-version     = "0.0.3"
-authors     = [{ name = "delta-kuro", email = "sankaku.kuro@gmail.com" }]
+name = "PyRwu"
+version = "0.0.3+kuresampler"
+authors = [
+    { name = "delta-kuro", email = "sankaku.kuro@gmail.com" },
+    { name = "oatsu", email = "oatsu.dev@gmail.com" },
+]
 description = ""
-readme      = "README.md"
-license     = { file = "LICENSE" }
+readme = "README.md"
+license = { file = "LICENSE" }
 classifiers = ["Programming Language :: Python :: 3"]
 
 [build-system]
