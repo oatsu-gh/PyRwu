@@ -1,3 +1,15 @@
+# PyRwu (for kuresampler)
+[PyRwu](https://github.com/delta-kimigatame/PyRwu) の fork です。
+
+## 違い
+- g フラグ適用時のフォルマントシフトを log スケールではなく mel スケールで行います。
+- g フラグ適用時のフォルマントシフトにおける内挿を、線形補間ではなく三次補間で行います。
+- 各種デバッグをしました。
+
+以下、本家 PyRwu の README です。
+
+---
+
 # PyRwu
 
 ### これは何?

@@ -1,5 +1,6 @@
 from . import (  # noqa: F401
     PyRwu,
+    effects,
     flags,
     frq_io,
     interpolate,
