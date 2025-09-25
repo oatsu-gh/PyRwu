@@ -33,7 +33,7 @@ class EBFlag(WorldEffectBase):
         start: int = params.flags.params['ebs'].value
 
         new_sp: np.ndarray = params.sp.copy()
-        new_ap: np.ndarray = params.new_ap.copy()
+        new_ap: np.ndarray = params.ap.copy()
 
         effect: np.ndarray = np.ones_like(new_ap) - new_ap
         sp_effect: np.ndarray = np.ones_like(new_sp) - value / (
