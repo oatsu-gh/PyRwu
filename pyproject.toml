@@ -1,25 +1,28 @@
 [project]
-name = "PyRwu"
-version = "0.0.3+kuresampler"
+name = 'PyRwu'
+version = '0.0.3+kuresampler'
 authors = [
-    { name = "delta-kuro", email = "sankaku.kuro@gmail.com" },
-    { name = "oatsu", email = "oatsu.dev@gmail.com" },
+    { name = 'delta-kuro', email = 'sankaku.kuro@gmail.com' },
+    { name = 'oatsu', email = 'oatsu.dev@gmail.com' },
 ]
-description = ""
-readme = "README.md"
-license = { file = "LICENSE" }
-classifiers = ["Programming Language :: Python :: 3"]
+description = ''
+readme = 'README.md'
+license = { file = 'LICENSE' }
+classifiers = ['Programming Language :: Python :: 3']
 
 [build-system]
-requires      = ["setuptools >= 77.0.3"]
-build-backend = "setuptools.build_meta"
+requires      = ['setuptools >= 77.0.3']
+build-backend = 'setuptools.build_meta'
 
 [tool.setuptools.packages.find]
-include = ["PyRwu*"]
+include = ['PyRwu*']
 
 [tool.ruff.lint]
-ignore = ['N']
+select = ['B', 'C4', 'W', 'E', 'F', 'I', 'S', 'ARG', 'PLE', 'PLW', 'RET', 'SIM', 'UP', 'T20', 'EXE', 'EM']
+ignore = [
+    'E501', # line-too-long
+]
 
 [tool.ruff.format]
 line-ending = 'lf'
-quote-style = "single"
+quote-style = 'single'
