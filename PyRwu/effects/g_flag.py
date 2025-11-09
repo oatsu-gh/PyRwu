@@ -8,7 +8,7 @@ def shift_spectrum(
     sp: np.ndarray,
     framerate: int,
     ratio: float,
-    scale_kind: str = 'mel',
+    scale_kind: str,
     interp_kind: str = 'cubic',
 ) -> np.ndarray:
     """スペクトルを周波数軸方向にシフトする (フォルマントシフト)
